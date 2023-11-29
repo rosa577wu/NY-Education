@@ -1,7 +1,7 @@
 # NY-Education
 This is the updated clean data folder for NY-Education Modeling Analysis.
 
-## clean folder
+## [clean] folder
 There are four clean data in this folder, organized by Yoyo, Rosy, and Rosa.
 
 ## Merging.Rmd
@@ -11,7 +11,7 @@ This file also creates a lagged variable for monthly COVID cases.
 
 Output: `Monthly.Merged.csv` and `Yearly.Merged.csv`
 
-## merged folder
+## [merged] folder
 This folder includes the merged dataset output from `Merging.Rmd`.
 
 ## Modeling.Rmd

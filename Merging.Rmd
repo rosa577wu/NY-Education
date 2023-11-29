@@ -1,0 +1,115 @@
+---
+title: "Merging"
+author: "STA310"
+date: "2023-11-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)    # graphics package
+library(dplyr)      # joining data frames and data manipulation
+library(leaps)
+library(tidyr)
+library(corrplot)
+library(mosaic)
+library(patchwork)
+```
+
+```{r pressure, echo=FALSE}
+find_match_general <- function(name, data, search_col, return_col) {
+  if(name == "") {
+    return(NA)
+  }
+  if(grepl("^NYC GEOG DIST #", name, ignore.case = TRUE)) {
+    exact_match <- which(data[[search_col]] == name)
+    if(length(exact_match) == 1) {
+      return(data[[return_col]][exact_match])
+    }
+  }
+  words <- unlist(strsplit(name, " "))
+  for (i in 1:length(words)) {
+    search_str <- paste(words[1:i], collapse = " ")
+    matches <- grep(paste("^", search_str, sep = ""), data[[search_col]], ignore.case = TRUE)
+    if (length(matches) == 1) {
+      return(data[[return_col]][matches])
+    }
+  }
+  return(NA)  # Return NA if no unique match is found
+}
+```
+
+### 1. Read in Files
+```{r}
+# annual lunch and expenditure
+lunch <- read.csv("clean_data/NOV28_cleaned_edu.csv")
+lunch <- lunch %>%
+  filter(year == 2021) %>%
+  unique()
+
+# id_name is used to merge data
+id_name <- read.csv("clean_data/id_name.csv")
+id_name <- id_name[-121,]
+
+# annual salary
+salary <- read.csv("clean_data/f_avg_salary_21(k-12) - Copy.csv")
+salary <- pivot_wider(salary, id_cols = c(report_school_year, district_name), 
+                      names_from = staff_ind_desc,
+                      values_from = avg_sal)
+salary <- merge(salary, id_name, by = "district_name")
+salary <- salary %>%
+  rename("Teacher_Sal" = "Classroom Teacher") %>%
+  rename("Princ_Sal" = "Principals & Asst. Principals") %>%
+  rename("id_name" = "state_district_id")
+
+# monthly covid cases and learning mode
+monthly.cases.mode <- read.csv("clean_data/monthly.cases.mode.csv")
+monthly.cases.mode$id_name <- sapply(monthly.cases.mode$District.Name, function(name) {
+  find_match_general(name, id_name, "district_name", "state_district_id")
+})
+monthly.cases.mode <- filter(monthly.cases.mode, !is.na(id_name))
+yearly.cases.mode <- monthly.cases.mode %>%
+  group_by(id_name) %>%
+  summarise(
+    NewCasesStudents = sum(NewCasesStudents, na.rm = TRUE),
+    NewCasesTeachers = sum(NewCasesTeachers, na.rm = TRUE),
+    NewCasesStaff = sum(NewCasesStaff, na.rm = TRUE),
+    Norm.New.Stud = sum(Norm.New.Stud, na.rm = TRUE),
+    share_inperson = ifelse(all(is.na(share_inperson)), NA, mean(share_inperson, na.rm = TRUE)),
+    share_hybrid = ifelse(all(is.na(share_hybrid)), NA, mean(share_hybrid, na.rm = TRUE)),
+    share_virtual = ifelse(all(is.na(share_virtual)), NA, mean(share_virtual, na.rm = TRUE))
+  )
+```
+
+
+### 2. Merge Files
+
+## a. Monthly
+```{r }
+Merged1 <- left_join(monthly.cases.mode, lunch, by = c("id_name" = "entity_cd"))
+Merged2 <- left_join(Merged1, salary, by = "id_name")
+
+# Create a lagged column for NewCasesStudents
+Merged3 <- Merged2 %>%
+  group_by(District.Name) %>%
+  arrange(Month, .by_group = TRUE) %>%
+  mutate(LaggedStudCases = lag(NewCasesStudents, 1)) %>%
+  ungroup() %>%
+  filter(Month != as.Date("2020-10-01"))
+```
+
+## b. Yearly
+```{r}
+Y.Merged1 <- left_join(yearly.cases.mode, lunch, by = c("id_name" = "entity_cd"))
+Y.Merged2 <- left_join(Y.Merged1, salary, by = "id_name")
+```
+
+### Write File
+```{r}
+write.csv(Merged3, "merged/Monthly.Merged.csv", row.names = FALSE)
+write.csv(Y.Merged2, "merged/Yearly.Merged.csv", row.names = FALSE)
+```
+
+
+
+

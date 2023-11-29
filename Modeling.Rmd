@@ -1,0 +1,220 @@
+---
+title: "Modeling"
+author: "STA310"
+date: "2023-11-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)    # graphics package
+library(dplyr)      # joining data frames and data manipulation
+library(leaps)
+library(tidyr)
+library(corrplot)
+library(mosaic)
+library(patchwork)
+```
+
+## Read in Files
+```{r}
+Merged3 <- read.csv("merged/Monthly.Merged.csv")
+Y.Merged2 <- read.csv("merged/Yearly.Merged.csv")
+```
+
+### 1. Modeling Approach (Monthly)
+
+Before checking best subset, we will delete redundant columns and Month (since all Months appears to be important predictor).
+```{r}
+# Delete extra columns (without Month)
+Merged4 <- select(Merged3, -c(NCESDistrictID, year, entity_name, district_name,
+                              report_school_year, pop.5.17, num.report.school,
+                              NewCasesTeachers, NewCasesStaff, AccuCasesStudents, AccuCasesTeachers,
+                              AccuCasesStaff, Norm.New.Stud, share_virtual, num_counselors,
+                              num_social, num_princ, District.Name, Month))
+
+
+# Delete extra columns (keep Month)
+Merged5 <- select(Merged3, -c(NCESDistrictID, year, entity_name, district_name,
+                              report_school_year, pop.5.17, num.report.school,
+                              NewCasesTeachers, NewCasesStaff, AccuCasesStudents, AccuCasesTeachers,
+                              AccuCasesStaff, Norm.New.Stud, share_virtual, num_counselors,
+                              num_social, num_princ, District.Name))
+
+Merged6 <- na.omit(Merged5)
+```
+
+
+```{r}
+# Best subset
+bestlm <- regsubsets(LaggedStudCases ~ ., data = Merged4, method="exhaustive")
+plot(bestlm, scale = "adjr2")
+summary(bestlm)$adjr2
+
+# Check Correlations Plot
+correlations <- cor(Merged4, use = "pairwise.complete.obs")
+corrplot(correlations)
+```
+
+Based on best subset result, we add the important predictor in our main effects model.
+```{r}
+## model0 : Main effect Model
+model0 <- lm(log(LaggedStudCases+1) ~ Month + share_inperson + NewCasesStudents + 
+               per_free_lunch + pupil_count_tot + Teacher_Sal,
+             data = Merged6)
+summary(model0)
+```
+
+Then, we create the interaction model to identity important interaction terms needed to add into our model. We check R-square value to make sure the predictive power of our model.
+```{r}
+## model1 : Check all interaction
+model1.m <- lm(log(LaggedStudCases+1) ~ (Month + share_inperson + NewCasesStudents + 
+                                         per_free_lunch + pupil_count_tot + Teacher_Sal)^2,
+             data = Merged6)
+summary(model1.m)
+```
+
+Our final monthly model includes only interaction terms that has observable effects on R-square.
+```{r}
+## model2 : Interaction Model
+model2.m <- lm(log(LaggedStudCases+1) ~ Month + share_inperson + NewCasesStudents + 
+               per_free_lunch + pupil_count_tot + Teacher_Sal +
+               pupil_count_tot*Teacher_Sal + per_free_lunch*pupil_count_tot + 
+               NewCasesStudents*per_free_lunch + NewCasesStudents*pupil_count_tot +
+               Month*per_free_lunch + Month*pupil_count_tot,
+             data = Merged6)
+summary(model2.m)
+
+# Check Residual Plot
+mod.res <- model2.m$residuals
+qqnorm(mod.res)
+```
+
+### 2. Modeling Approach (Yearly)
+
+(Modeling for yearly data follows similar approach as monthly)
+```{r}
+Y.Merged3 <- Y.Merged2 %>%
+  select(-c(year, entity_name, district_name,
+            report_school_year, NewCasesTeachers, NewCasesStaff, Norm.New.Stud, 
+            share_virtual, num_counselors, num_social, num_princ)) %>%
+  rename("TotalCasesStudent" = "NewCasesStudents")
+Y.Merged4 <- na.omit(Y.Merged3)
+```
+
+```{r}
+model0.y <- lm(TotalCasesStudent ~ Teacher_Sal + student_teacher_ratio + 
+                 per_free_lunch + math_per_prof.18  + pupil_count_tot +  share_inperson,
+               data = Y.Merged4)
+summary(model0.y)
+
+
+# Check Correlations Plot
+correlations <- cor(Y.Merged4, use = "pairwise.complete.obs")
+corrplot(correlations)
+
+## model1 : Check all interaction 
+model1.y <- lm(TotalCasesStudent ~ (Teacher_Sal + student_teacher_ratio + 
+                                      per_free_lunch + math_per_prof.18  + pupil_count_tot + 
+                                      share_inperson)^2,
+               data = Y.Merged4)
+summary(model1.y)
+
+
+## model2 : Interaction Model
+model2.y <- lm(log(TotalCasesStudent+1) ~ Teacher_Sal*Teacher_Sal + Teacher_Sal + 
+                 student_teacher_ratio + per_free_lunch + math_per_prof.18  + pupil_count_tot + 
+                 share_inperson + pupil_count_tot*share_inperson + per_free_lunch*pupil_count_tot +
+                 student_teacher_ratio*pupil_count_tot,
+               data = Y.Merged4)
+
+summary(model2.y)
+```
+
+
+### 3. Plotting
+
+Create categories for continuous variables (for side-by-side plot).
+```{r}
+Y.Merged4$NormalizedCases = 1000 * (Y.Merged4$TotalCasesStudent / Y.Merged4$pupil_count_tot)
+Y.Merged4$CasesCategory <- cut(Y.Merged4$NormalizedCases, 
+                               breaks = c(0, 30, 60, 90, Inf),
+                               labels = c("0-30", "30-60", "60-90", ">90"),
+                               include.lowest = TRUE)
+
+Y.Merged4$SalaryCategory <- cut(Y.Merged4$Teacher_Sal, 
+                                breaks = c(50003, 62340, 69744, 95366, Inf),
+                                labels = c("Low Salary (<25)", "Below Median Salary", "Above Median Salary", "High Salary (>75)"),
+                                include.lowest = TRUE)
+```
+
+```{r}
+# Histogram for TotalCasesStudent
+p1 <- ggplot(Y.Merged4, aes(x = TotalCasesStudent)) +
+  geom_histogram(aes(y = ..count..), bins = 30, fill = "#1f77b4", alpha = 0.6) +
+  geom_density(aes(y = 33*..count..), color = "blue", size = 1) +
+  labs(title = "Histogram of TotalCasesStudent") +
+  theme_minimal()
+p1
+
+# Histogram for NormalizedCases
+p2 <- ggplot(Y.Merged4, aes(x = NormalizedCases)) +
+  geom_histogram(aes(y = ..count..), bins = 30, fill = "#1f77b4", alpha = 0.6) +
+  geom_density(aes(y = 4.5*..count..), color = "blue", size = 1) +
+  labs(title = "Histogram of NormalizedCases (per 1000 pupils)") +
+  theme_minimal()
+p2
+
+# Histogram for share_inperson
+p3 <- ggplot(Y.Merged4, aes(x = per_free_lunch)) +
+  geom_histogram(aes(y = ..count..), bins = 30, fill = "#9467bd", alpha = 0.6) +
+  geom_density(aes(y = 3.2*..count..), color = "purple", size = 1) +
+  labs(title = "Histogram of per_free_lunch") +
+  theme_minimal()
+p3
+
+# Histogram for pupil_count_tot
+p4 <- ggplot(Y.Merged4, aes(x = pupil_count_tot)) +
+  geom_histogram(aes(y = ..count..), bins = 30, fill = "#9467bd", alpha = 0.6) +
+  geom_density(aes(y = 1000*..count..), color = "purple", size = 1) +
+  labs(title = "Histogram of pupil_count_tot") +
+  theme_minimal()
+p4
+
+# Histogram for Teacher_Sal
+p5 <- ggplot(Y.Merged4, aes(x = Teacher_Sal)) +
+  geom_histogram(aes(y = ..count..), bins = 30, fill = "#9467bd", alpha = 0.6) +
+  geom_density(aes(y = 2850*..count..), color = "purple", size = 1) +
+  labs(title = "Histogram of Teacher_Sal") +
+  theme_minimal()
+p5
+
+# Histogram for student_teacher_ratio
+p6 <- ggplot(Y.Merged4, aes(x = student_teacher_ratio)) +
+  geom_histogram(aes(y = ..count..), bins = 30, fill = "#9467bd", alpha = 0.6) +
+  geom_density(aes(y = 0.555*..count..), color = "purple", size = 1) +
+  labs(title = "Histogram of student_teacher_ratio") +
+  theme_minimal()
+p6
+
+# Arranging plots and Print out
+layout1 <- (p1 | p2)
+layout2 <-  (p3 | p4) /
+  (p5 | p6)
+#layout1
+#layout2
+```
+
+Based on the bimodel shape of teacher salary, we create the following plot facetted by different levels of teacher salary.
+```{r}
+# % of Free Lunch vs. (log) Student Cases by Teacher Salary
+ggplot(Y.Merged4, aes(x = per_free_lunch, y = log(TotalCasesStudent))) +
+  geom_point(color = "#1f77b4") +  # Add color to the points
+  facet_wrap(~SalaryCategory) +
+  labs(title = "% of Free Lunch vs. (log) Student Cases by Teacher Salary",
+       x = "Percentage of Free Lunch",
+       y = "(log) Total Cases") +
+  theme_minimal()
+```
+
+

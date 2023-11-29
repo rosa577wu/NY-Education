@@ -5,7 +5,7 @@ library(sf)         # simple features package for spatial data
 library(leaps)
 library(tidyr)
 library(corrplot)
-require(mosaic)
+library(mosaic)
 library(patchwork)
 
 
@@ -36,17 +36,17 @@ find_match_general <- function(name, data, search_col, return_col) {
 ##             1. Read in Data
 ####################################################
 # annual lunch and expenditure
-lunch <- read.csv("/Users/rosawu/Library/CloudStorage/OneDrive-GrinnellCollege/MAPS 2024F- Modeling the Pandemic/111 Cleaned Data/NY education data/OCT31/NOV14_cleaned_edu.csv")
+lunch <- read.csv("clean_data/NOV28_cleaned_edu.csv")
 lunch <- lunch %>%
   filter(year == 2021) %>%
   unique()
 
 # id_name is used to merge data
-id_name <- read.csv("/Users/rosawu/Library/CloudStorage/OneDrive-GrinnellCollege/MAPS 2024F- Modeling the Pandemic/111 Cleaned Data/NY education data/OCT31/id_name.csv")
+id_name <- read.csv("clean_data/id_name.csv")
 id_name <- id_name[-121,]
 
 # annual salary
-salary <- read.csv("/Users/rosawu/Library/CloudStorage/OneDrive-GrinnellCollege/MAPS 2024F- Modeling the Pandemic/111 Cleaned Data/NY education data/OCT31/f_avg_salary_21(k-12) - Copy.csv")
+salary <- read.csv("clean_data/f_avg_salary_21(k-12) - Copy.csv")
 salary <- pivot_wider(salary, id_cols = c(report_school_year, district_name), 
                       names_from = staff_ind_desc,
                       values_from = avg_sal)
@@ -57,7 +57,7 @@ salary <- salary %>%
   rename("id_name" = "state_district_id")
 
 # monthly covid cases and learning mode
-monthly.cases.mode <- read.csv("/Users/rosawu/Library/CloudStorage/OneDrive-GrinnellCollege/MAPS 2024F- Modeling the Pandemic/111 Cleaned Data/NY education data/OCT31/monthly.cases.mode.csv")
+monthly.cases.mode <- read.csv("clean_data/monthly.cases.mode.csv")
 monthly.cases.mode$id_name <- sapply(monthly.cases.mode$District.Name, function(name) {
   find_match_general(name, id_name, "district_name", "state_district_id")
 })
@@ -111,8 +111,8 @@ Y.Merged1 <- left_join(yearly.cases.mode, lunch_test, by = c("id_name" = "entity
 Y.Merged2 <- left_join(Y.Merged1, salary, by = "id_name")
 Y.Merged3 <- Y.Merged2 %>%
   select(-c(year, entity_name, district_name,
-                              report_school_year, NewCasesTeachers, NewCasesStaff, Norm.New.Stud, 
-                              share_virtual, num_counselors, num_social, num_princ)) %>%
+            report_school_year, NewCasesTeachers, NewCasesStaff, Norm.New.Stud, 
+            share_virtual, num_counselors, num_social, num_princ)) %>%
   rename("TotalCasesStudent" = "NewCasesStudents")
 Y.Merged4 <- na.omit(Y.Merged3)
 

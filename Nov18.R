@@ -41,9 +41,6 @@ lunch <- lunch %>%
   filter(year == 2021) %>%
   unique()
 
-lunch_test <- read.csv("/Users/rosawu/Library/CloudStorage/OneDrive-GrinnellCollege/MAPS 2024F- Modeling the Pandemic/111 Cleaned Data/NY education data/NOV17_cleaned_edu.csv")
-# lunch_test <- select(lunch_test, c(entity_cd, student_teacher_ratio, ELA_per_prof.18, math_per_prof.18))
-
 # id_name is used to merge data
 id_name <- read.csv("/Users/rosawu/Library/CloudStorage/OneDrive-GrinnellCollege/MAPS 2024F- Modeling the Pandemic/111 Cleaned Data/NY education data/OCT31/id_name.csv")
 id_name <- id_name[-121,]

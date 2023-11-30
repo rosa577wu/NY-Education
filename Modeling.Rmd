@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(ggplot2)    # graphics package
+library(ggplot2)
 library(dplyr)      # joining data frames and data manipulation
 library(leaps)
 library(tidyr)
@@ -253,109 +253,93 @@ Maps
 comb_map <- inner_join(Merged6, sd_shape.f, by = c("id_name" = "entity_cd"))
 # anti_join(Merged6, sd_shape.f, by = c("id_name" = "entity_cd")), 6 school districts w/ missing location
 
-Y.comb_map <- inner_join(Y.Merged4, sd_shape.f, by = c("id_name" = "entity_cd"))
+comb_map <- comb_map %>%
+  mutate(per_cases = NewCasesStudents/pupil_count_tot)
 
-comb_map.09 <- comb_map %>%
-  filter(Month == "2020-09-01") # only two entries, can disregard observations from September
+# plot(density(comb_map$per_cases))
 
-comb_map.11 <- comb_map %>%
-  filter(Month == "2020-11-01")
-
-comb_map.12 <- comb_map %>%
-  filter(Month == "2020-12-01")
-
-comb_map.01 <- comb_map %>%
-  filter(Month == "2021-01-01")
-
-comb_map.02 <- comb_map %>%
-  filter(Month == "2021-02-01")
-
-comb_map.03 <- comb_map %>%
-  filter(Month == "2021-03-01")
-
-comb_map.04 <- comb_map %>%
-  filter(Month == "2021-04-01")
-
-comb_map.05 <- comb_map %>%
-  filter(Month == "2021-05-01")
-
-comb_map.06 <- comb_map %>%
-  filter(Month == "2021-06-01")
-
-nov <- ggplot(data = comb_map.11, aes(fill = NewCasesStudents)) + 
+nov <- comb_map %>%
+  filter(Month == "2020-11-01") %>%
+  ggplot(aes(fill = per_cases)) +
   geom_sf(aes(geometry = geometry), show.legend = FALSE) +
-  scale_fill_continuous(name = "New Student Cases", limits = c(0, 250),      
-                        breaks = c(0, 50, 100, 150, 200, 250),  
+  scale_fill_continuous(name = "New Student Cases", limits = c(0, 0.075),      
+                        breaks = c(0, 0.025, 0.05, 0.075),  
                         low = "skyblue", high = "darkblue") +
-  ggtitle("Number of New Student Cases, Nov. 2020") +
-  theme(# plot.title = element_text(size = 100),
-        panel.background = element_rect(fill = NA))
+  ggtitle("Percent New Student Cases, Nov. 2020") +
+  theme(panel.background = element_rect(fill = NA))
 
-dec <- ggplot(data = comb_map.12, aes(fill = NewCasesStudents)) + 
+dec <- comb_map %>%
+  filter(Month == "2020-12-01") %>%
+  ggplot(aes(fill = per_cases)) +
   geom_sf(aes(geometry = geometry), show.legend = FALSE) +
-  scale_fill_continuous(name = "New Student Cases", limits = c(0, 250),      
-                        breaks = c(0, 50, 100, 150, 200, 250),  
+  scale_fill_continuous(name = "New Student Cases", limits = c(0, 0.075),      
+                        breaks = c(0, 0.025, 0.05, 0.075),  
                         low = "skyblue", high = "darkblue") +
-  ggtitle("Number of New Student Cases, Dec. 2020") +
-  theme(# plot.title = element_text(size = 100),
-        panel.background = element_rect(fill = NA))
+  ggtitle("Percent New Student Cases, Dec. 2020") +
+  theme(panel.background = element_rect(fill = NA))
 
-jan <- ggplot(data = comb_map.01, aes(fill = NewCasesStudents)) + 
+jan <- comb_map %>%
+  filter(Month == "2021-01-01") %>%
+  ggplot(aes(fill = per_cases)) +
   geom_sf(aes(geometry = geometry), show.legend = FALSE) +
-  scale_fill_continuous(name = "New Student Cases", limits = c(0, 250),      
-                        breaks = c(0, 50, 100, 150, 200, 250),  
+  scale_fill_continuous(name = "New Student Cases", limits = c(0, 0.075),      
+                        breaks = c(0, 0.025, 0.05, 0.075),  
                         low = "skyblue", high = "darkblue") +
-  ggtitle("Number of New Student Cases, Jan. 2021") +
-  theme(# plot.title = element_text(size = 100),
-        panel.background = element_rect(fill = NA))
+  ggtitle("Percent New Student Cases, Jan. 2021") +
+  theme(panel.background = element_rect(fill = NA))
 
-feb <- ggplot(data = comb_map.02, aes(fill = NewCasesStudents)) + 
+feb <- comb_map %>%
+  filter(Month == "2021-02-01") %>%
+  ggplot(aes(fill = per_cases)) +
   geom_sf(aes(geometry = geometry)) +
-  scale_fill_continuous(name = "New Student Cases", limits = c(0, 250),      
-                        breaks = c(0, 50, 100, 150, 200, 250),  
+  scale_fill_continuous(name = "New Student Cases", limits = c(0, 0.075),      
+                        breaks = c(0, 0.025, 0.05, 0.075),  
                         low = "skyblue", high = "darkblue") +
-  ggtitle("Number of New Student Cases, Feb. 2021") +
-  theme(# plot.title = element_text(size = 100),
-        panel.background = element_rect(fill = NA))
+  ggtitle("Percent New Student Cases, Feb. 2021") +
+  theme(panel.background = element_rect(fill = NA))
 
-mar <- ggplot(data = comb_map.03, aes(fill = NewCasesStudents)) + 
+mar <- comb_map %>%
+  filter(Month == "2021-03-01") %>%
+  ggplot(aes(fill = per_cases)) +
   geom_sf(aes(geometry = geometry), show.legend = FALSE) +
-  scale_fill_continuous(name = "New Student Cases", limits = c(0, 250),      
-                        breaks = c(0, 50, 100, 150, 200, 250),  
+  scale_fill_continuous(name = "New Student Cases", limits = c(0, 0.075),      
+                        breaks = c(0, 0.025, 0.05, 0.075),  
                         low = "skyblue", high = "darkblue") +
-  ggtitle("Number of New Student Cases, Mar. 2021") +
-  theme(# plot.title = element_text(size = 100),
-        panel.background = element_rect(fill = NA))
+  ggtitle("Percent New Student Cases, Mar. 2021") +
+  theme(panel.background = element_rect(fill = NA))
 
-apr <- ggplot(data = comb_map.04, aes(fill = NewCasesStudents)) + 
+apr <- comb_map %>%
+  filter(Month == "2021-04-01") %>%
+  ggplot(aes(fill = per_cases)) +
   geom_sf(aes(geometry = geometry), show.legend = FALSE) +
-  scale_fill_continuous(name = "New Student Cases", limits = c(0, 250),      
-                        breaks = c(0, 50, 100, 150, 200, 250),  
+  scale_fill_continuous(name = "New Student Cases", limits = c(0, 0.075),      
+                        breaks = c(0, 0.025, 0.05, 0.075),  
                         low = "skyblue", high = "darkblue") +
-  ggtitle("Number of New Student Cases, Apr. 2021") +
-  theme(# plot.title = element_text(size = 100),
-        panel.background = element_rect(fill = NA))
+  ggtitle("Percent New Student Cases, Apr. 2021") +
+  theme(panel.background = element_rect(fill = NA))
 
-may <- ggplot(data = comb_map.05, aes(fill = NewCasesStudents)) + 
+may <- comb_map %>%
+  filter(Month == "2021-05-01") %>%
+  ggplot(aes(fill = per_cases)) +
   geom_sf(aes(geometry = geometry), show.legend = FALSE) +
-  scale_fill_continuous(name = "New Student Cases", limits = c(0, 250),      
-                        breaks = c(0, 50, 100, 150, 200, 250),  
+  scale_fill_continuous(name = "New Student Cases", limits = c(0, 0.075),      
+                        breaks = c(0, 0.025, 0.05, 0.075),  
                         low = "skyblue", high = "darkblue") +
-  ggtitle("Number of New Student Cases, May 2021") +
-  theme(# plot.title = element_text(size = 100),
-        panel.background = element_rect(fill = NA))
+  ggtitle("Percent New Student Cases, May 2021") +
+  theme(panel.background = element_rect(fill = NA))
 
-jun <- ggplot(data = comb_map.06, aes(fill = NewCasesStudents)) + 
+jun <- comb_map %>%
+  filter(Month == "2021-06-01") %>%
+  ggplot(aes(fill = per_cases)) +
   geom_sf(aes(geometry = geometry)) +
-  scale_fill_continuous(name = "New Student Cases", limits = c(0, 250),      
-                        breaks = c(0, 50, 100, 150, 200, 250),  
+  scale_fill_continuous(name = "New Student Cases", limits = c(0, 0.075),      
+                        breaks = c(0, 0.025, 0.05, 0.075),  
                         low = "skyblue", high = "darkblue") +
-  ggtitle("Number of New Student Cases, Jun. 2021") +
-  theme(# plot.title = element_text(size = 100),
-        panel.background = element_rect(fill = NA))
+  ggtitle("Percent New Student Cases, Jun. 2021") +
+  theme(panel.background = element_rect(fill = NA))
 
-# jpeg(file = "~/Desktop/map.jpg",
-    # width = 12000, height = 5000)
+#jpeg(file = "map_1.jpg",
+#     width = 12000, height = 5000)
 grid.arrange(nov, dec, jan, feb, mar, apr, may, jun, ncol = 4, nrow = 2)
 ```
 
